@@ -1,0 +1,262 @@
+<!DOCTYPE HTML>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>ImageProcJS</title>
+    <link rel='stylesheet' type='text/css' href='css/style.css' media="screen, print, projection">
+
+    <!-- External libraries -->
+    <script type="text/javascript" src="lib/jquery-1.10.2.min.js"></script>
+    <script type="text/javascript" src="lib/d3.v3.min.js"></script>
+    <script type="text/javascript" src="lib/require.js"></script>
+
+    <!-- Peihong's library -->
+    <script type="text/javascript" src="algorithms.js"></script>
+    <script type="text/javascript" src="benchmark.js"></script>
+    <script type="text/javascript" src="colorutils.js"></script>
+    <script type="text/javascript" src="color.js"></script>
+    <script type="text/javascript" src="image.js"></script>
+    <script type="text/javascript" src="filter.js"></script>
+    <script type="text/javascript" src="effects.js"></script>
+    <script type="text/javascript" src="curve.js"></script>
+    <script type="text/javascript" src="tools/curvetool.js"></script>
+    <script type="text/javascript" src="tools/histogramtool.js"></script>
+    <script type="text/javascript" src="imageloader.js"></script>
+    <script type="text/javascript" src="utils.js"></script>
+    <script>
+        var context, canvas;
+        var curvetool, histtool;
+        var loader;
+        window.onload = function() {
+            loader = new ImageLoader();
+            canvas = document.getElementById('cvs');
+            context = canvas.getContext('2d');
+            curvetool = new CurveTool();
+            histtool = new HistogramTool();
+            histtool.init('#div_curvetool', 'rgb');
+            curvetool.init('#div_curvetool');
+
+            var transformImage = function( func ) {
+                var I = loader.result;
+                benchmark(function(){I = func( I );});
+                I.render(canvas);
+                histtool.bindImage( I );
+            };
+
+            $(document).on("curvechanged", function(evt) {
+                console.log('curve changed.');
+                transformImage(function(I) { return filters.curve(I, curvetool.getLUT(), $('#channelselect').val()); });
+            });
+
+            $(document).on('imageloaded', function() {
+                transformImage(function(I) { return I; });
+            });
+
+            $('#resetcurve_btn').click(function() {
+                curvetool.resetCurveTool();
+                transformImage(function(I) { return I; });
+            });
+
+            $('#show_btn').click( function() {
+                loader.loadImage('seal.jpg', canvas);
+            });
+
+            $('#gs_btn').click( function() {
+                transformImage(function(I) {
+                    return filters.grayscale(I);
+                });
+            });
+
+            $('#invert_btn').click( function() {
+                transformImage(function(I) {
+                    return filters.invert(I);
+                });
+            });
+
+            $('#hist_btn').click(function() {
+                transformImage(function(I) {
+                    return filters.histogram(I);
+                });
+            });
+
+            $('#ahe_btn').click(function() {
+                transformImage(function(I) {
+                    return filters.ahe(I);
+                });
+            });
+
+            $('#reduction_btn').click(function() {
+                transformImage(function(I) {
+                    return filters.reduction(I, $('#reduction_method').val(), parseFloat($('#reduction_colors').val()));
+                });
+            });
+
+            $('#filter_btn').click(function() {
+                transformImage(function(I) {
+                    return filters.spatialfilter(I, algorithms.createfilter(
+                            {
+                                name: $('#filter_select').val(),
+                                size: parseFloat($('#filter_size').val()),
+                                sigma: parseFloat($('#filter_sigma').val())
+                            }
+                    ));
+                });
+            });
+
+            $('#brightnessbar').bind('input', function(e) {
+                var beta = parseInt($('#brightnessbar').val());
+                $('#brightnessval').html(beta);
+                var I = loader.result;
+                if( $('#brightnesscontrast').is(':checked') ){
+                    var alpha = parseInt($('#contrastbar').val());
+                    I = filters.brightnesscontrast(I, alpha, beta);
+                }else {
+                    I = filters.brightness(I, beta);
+                }
+                I.render(canvas);
+                histtool.bindImage( I );
+            });
+
+            $('#contrastbar').bind('input', function(e) {
+                var alpha = parseInt($('#contrastbar').val());
+                $('#contrastval').html(alpha);
+                var I = loader.result;
+                if( $('#brightnesscontrast').is(':checked') ){
+                    var beta = parseInt($('#brightnessbar').val());
+                    I = filters.brightnesscontrast(I, alpha, beta);
+                }else{
+                    I = filters.contrast(I, alpha);
+                }
+                I.render(canvas);
+                histtool.bindImage( I );
+            });
+
+            $('#files').change( function( e ){
+                handleFileSelect(e, loader, canvas);
+            });
+
+            $('#sepia_btn').click(function(e) {
+                transformImage(function(I){
+                    return effects.sepia(I);
+                });
+            });
+
+            $('#autumn_btn').click(function(e) {
+                transformImage(function(I){
+                    return effects.autumn(I);
+                });
+            });
+
+            $('#div_effects').hide();
+            $("input[name='opradio']").change(function(){
+                console.log($("input[name='opradio']:checked").val());
+                switch ( $("input[name='opradio']:checked").val() ) {
+                    case 'filters': {
+                        $('#div_filters').show();
+                        $('#div_effects').hide();
+                        break;
+                    }
+                    case 'effects': {
+                        $('#div_filters').hide();
+                        $('#div_effects').show();
+                        break;
+                    }
+                }
+            });
+        }
+    </script>
+</head>
+<body>
+<header>ImageProcJS Demo</header>
+<article>
+    <div class="content">
+        <button id="show_btn">Show Remote Image</button>
+        Upload image:
+        <input type="file" id="files" name="files[]" />
+        <output id="list"></output>
+        <div>
+            <input name="opradio" type="radio" value="filters" checked="checked">Filters<input name="opradio" type="radio" value="effects">Effects
+            <div id="div_filters">
+            <table>
+                <tr>
+                    <td><button id="gs_btn">Show Grayscale</button></td>
+                </tr>
+                <tr>
+                    <td><button id="invert_btn">Invert</button></td>
+                </tr>
+                <tr>
+                    <td><button id="hist_btn">Histogram Equalization</button></td>
+                </tr>
+                <tr>
+                    <td><button id="ahe_btn">Adaptive Histogram Equalization</button></td>
+                </tr>
+                <tr>
+                    <td><input type="checkbox" id="brightnesscontrast">Brightness & Contrast</td>
+                </tr>
+                <tr>
+                    <td><input type="range" id="brightnessbar" min="-128" max="128" value="0">Brightness</td><td><p id="brightnessval"></p></td>
+                </tr>
+                <tr>
+                    <td><input type="range" id="contrastbar" min="-128" max="128" value="0">Contrast</td><td><p id="contrastval"></p></td>
+                </tr>
+                <tr>
+                    <td><button id="reduction_btn">Color Reduction</button></td>
+                    <td><select id="reduction_method">
+                        <option value="uniform">Uniform</option>
+                        <option value="population">Population</option>
+                        <option value="mediancut">Median-Cut</option>
+                        <option value="knn">kNN</option>
+                        <option value="ann">ANN</option>
+                    </select></td>
+                    <td>Colors&nbsp<input type="text" id="reduction_colors" value="4"></td>
+                </tr>
+                <tr>
+                    <td><button id="filter_btn">Spatial Filter</button></td>
+                    <td>
+                        <select id="filter_select">
+                            <option value="gaussian">Gaussian</option>
+                            <option value="sharpen">Sharpen</option>
+                            <option value="vsobel">Sobel (Vertical)</option>
+                            <option value="hsobel">Sobel (Horizontal)</option>
+                            <option value="laplacian">Laplacian</option>
+                        </select>
+                    </td>
+                    <td>
+                        Size&nbsp<input type="text" id="filter_size" value="3">
+                        Sigma&nbsp<input type="text" id="filter_sigma" value="1">
+                    </td>
+                </tr>
+            </table>
+            </div>
+            <div id="div_effects">
+            <table>
+                <tr><td><button id="sepia_btn" class="effect_btn" value="sepia">Sepia</button></td></tr>
+                <tr><td><button id="autumn_btn" class="effect_btn" value="autumn">Autumn</button></td></tr>
+            </table>
+            </div>
+        </div>
+        <p id='imageinfo'></p>
+        <div>
+            <div id='div_canvas'>
+                <canvas id="cvs"></canvas>
+            </div>
+            <div id='div_curvetool'>
+                <div>
+                    <button id="resetcurve_btn">Reset Curve</button>
+                    <select id="channelselect">
+                        <option value="brightness">Brightness</option>
+                        <option value="red">Red</option>
+                        <option value="green">Green</option>
+                        <option value="blue">Blue</option>
+                    </select><br>
+                </div>
+            </div>
+        </div>
+    </div>
+</article>
+<footer>
+    Last Modified: <script type="text/javascript">document.write(document.lastModified)</script><br>
+    &copy 2009-2013, Peihong Guo
+</footer>
+</body>
+</html>

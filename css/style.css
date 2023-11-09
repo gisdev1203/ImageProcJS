@@ -1,0 +1,86 @@
+header, footer{
+    padding: 5px;
+    background: #aabbee;
+    text-align: center;
+}
+
+footer {
+    font-size: 8px;
+}
+
+body {
+    position: relative;
+    left: 5%;
+    width: 90%;
+    background: #ffffaa;
+}
+
+article {
+    min-width: 800px;
+    min-height: 600px;
+    overflow: auto;
+}
+
+div {
+    padding: 5px;
+}
+
+.content {
+    padding: 20px;
+    position: relative;
+    left: 5%;
+    width: 90%;
+}
+
+svg{
+    position: absolute;
+    left: 0;
+    border: 1px solid;
+}
+
+.back {
+    background: #ffffff;
+}
+
+#div_canvas, #div_curvetool {
+    padding: 10px;
+    display: block;
+    float: left;
+    position: relative;
+}
+
+.area {
+    fill: steelblue;
+}
+
+#hist0 {
+    fill: rgba(255, 0, 0, 0.25);
+}
+#hist1 {
+    fill: rgba(0, 255, 0, 0.25);
+}
+#hist2 { 
+    fill: rgba(0, 0, 255, 0.25);
+}
+
+rect {
+    fill: none;
+    pointer-events: all;
+}
+
+circle, .line {
+    fill: none;
+    stroke: black;
+    stroke-width: 1.5px;
+}
+
+circle {
+    fill: #fff;
+    fill-opacity: .2;
+    cursor: move;
+}
+
+.selected {
+    fill: #ff7f0e;
+    stroke: #ff7f0e;
+}
